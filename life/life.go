@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	golog "log"
 	"math/rand/v2"
 	"os"
 
@@ -68,15 +70,20 @@ func (c *Conway) Count(x, y int) Cell {
 func (c *Conway) Next() {
 	for y := range c.Height {
 		for x := range c.Width {
-			count := c.Count(x, y)
-			switch {
-			case count < 2 || count > 3:
-				c.Clear(x, y)
-			case count == 3:
+			if x < 10 || x > 70 || y < 10 || y > 30 {
 				c.Set(x, y)
-			default:
-				c.Copy(x, y)
 			}
+
+			// count := c.Count(x, y)
+			// switch {
+			// case count < 2 || count > 3:
+			// 	c.Clear(x, y)
+			// case count == 3:
+			// 	c.Set(x, y)
+			// default:
+			// 	c.Copy(x, y)
+			// }
+			// c.Set(x, y)
 		}
 	}
 	c.Current = 1 - c.Current
@@ -154,7 +161,17 @@ type Game struct {
 	hasMouse               bool
 }
 
+const LogFile = "/workspaces/fortio-terminal/log"
+
 func Main() int {
+	f, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to open log file %v\n", err))
+	}
+	defer f.Close()
+
+	golog.SetOutput(f)
+
 	fpsFlag := flag.Float64("fps", 60, "Frames per second")
 	flagRandomFill := flag.Float64("fill", 0.1, "Random fill factor (0 to 1)")
 	flagGlider := flag.Bool("glider", false, "Start with a glider (default is random)")
@@ -162,7 +179,7 @@ func Main() int {
 	cli.Main()
 	game := &Game{hasMouse: !*noMouseFlag}
 	ap := ansipixels.NewAnsiPixels(*fpsFlag)
-	err := ap.Open()
+	err = ap.Open()
 	if err != nil {
 		return log.FErrf("Error opening AnsiPixels: %v", err)
 	}
@@ -236,6 +253,9 @@ func (g *Game) DrawOne() {
 		g.ap.WriteRight(g.ap.H-1, "%s FPS %.0f Generation: %d ", g.state, g.ap.FPS, g.generation)
 	}
 	Draw(g.ap, g.c)
+
+	golog.Println("running DrawOne()")
+
 	if g.showHelp {
 		helpText := "Space to pause, q to quit, i for info, other key to run\n"
 		if g.hasMouse {
